@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import func, ForeignKey
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -24,6 +24,14 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     last_seen: Mapped[Optional[datetime]]
 
+    photos: Mapped[list["Photo"]] = relationship(
+        back_populates="author", foreign_keys="Photo.author_id"
+    )
+    trips: Mapped[list["Trip"]] = relationship(back_populates="author")
+
+    def __repr__(self) -> str:
+        return f"<id={self.id}, full_name={self.first_name} {self.last_name}>"
+
 
 class Photo(Base):
     __tablename__ = "photo"
@@ -31,7 +39,9 @@ class Photo(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     author_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id"))
     trip_id: Mapped[Optional[UUID]] = mapped_column(
-        ForeignKey("trips.id")
+        ForeignKey(
+            "trip.id", ondelete="CASCADE"
+        )  # Photos belonging to a trip that becomes deleted shall be deleted.
     )  # Photos can be uploaded without belonging to a trip.
     title: Mapped[str]
     url: Mapped[str]
@@ -43,6 +53,17 @@ class Photo(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[Optional[datetime]]
     taken_at: Mapped[Optional[datetime]]
+
+    author: Mapped[User] = relationship(back_populates="photos")
+    trip: Mapped[Optional["Trip"]] = relationship(
+        back_populates="photos", foreign_keys=[trip_id]
+    )
+    photo_metadata: Mapped[Optional["PhotoMetadata"]] = relationship(
+        back_populates="photo", uselist=False
+    )
+
+    def __repr__(self) -> str:
+        return f"<id={self.id}, author={self.author.first_name} {self.author.last_name}, title={self.title}>"
 
 
 class PhotoMetadata(Base):
@@ -64,15 +85,28 @@ class PhotoMetadata(Base):
     push_pull: Mapped[Optional[str]]
     lab: Mapped[Optional[str]]
 
+    photo: Mapped[Photo] = relationship(back_populates="photo_metadata")
+
 
 class Trip(Base):
-    __tablename__ = "trips"
+    __tablename__ = "trip"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     author_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id"))
     title: Mapped[str]
-    description: Mapped[str]
-    cover_photo_id: Mapped[Optional[str]] = mapped_column(ForeignKey("photo.id"))
+    description: Mapped[Optional[str]]
+    cover_photo_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("photo.id"))
     is_private: Mapped[bool] = mapped_column(default=False)  # Just in case.
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[Optional[datetime]]
+
+    author: Mapped[User] = relationship(back_populates="trips")
+    photos: Mapped[list[Photo]] = relationship(
+        back_populates="trip",
+        foreign_keys="Photo.trip_id",
+        passive_deletes=True,
+    )
+    cover_photo: Mapped[Optional[Photo]] = relationship(foreign_keys=[cover_photo_id])
+
+    def __repr__(self) -> str:
+        return f"<id={self.id}, author={self.author.first_name} {self.author.last_name}, title={self.title}>"
