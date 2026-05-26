@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 from uuid import UUID, uuid4
 
 from sqlalchemy import func, ForeignKey
@@ -71,7 +71,7 @@ class Photo(Base):
 
 
 class PhotoMetadata(Base):
-    """1 to 1 with the Photo model"""
+    """1 to 1 with the Photo model. Info on the 'how' of the photo taken."""
 
     __tablename__ = "photo_metadata"
 
@@ -103,6 +103,9 @@ class Trip(Base):
     )
     title: Mapped[str]
     description: Mapped[Optional[str]]
+    start_date: Mapped[Optional[date]] = mapped_column(default=None)
+    end_date: Mapped[Optional[date]] = mapped_column(default=None)
+    # locations: Mapped[Optional[list[str]]]  # If the trip hits several countries or states.
     cover_photo_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("photo.id"))
     is_private: Mapped[bool] = mapped_column(default=False)  # Just in case.
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
