@@ -25,19 +25,23 @@ class User(Base):
     last_seen: Mapped[Optional[datetime]]
 
     photos: Mapped[list["Photo"]] = relationship(
-        back_populates="author", foreign_keys="Photo.author_id"
+        back_populates="author", foreign_keys="Photo.author_id", passive_deletes=True
     )
-    trips: Mapped[list["Trip"]] = relationship(back_populates="author")
+    trips: Mapped[list["Trip"]] = relationship(
+        back_populates="author", passive_deletes=True
+    )
 
     def __repr__(self) -> str:
-        return f"<id={self.id}, full_name={self.first_name} {self.last_name}>"
+        return f"<USER id={self.id}, full_name={self.first_name} {self.last_name}>"
 
 
 class Photo(Base):
     __tablename__ = "photo"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    author_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id"))
+    author_id: Mapped[UUID] = mapped_column(
+        ForeignKey("user_account.id", ondelete="CASCADE")
+    )
     trip_id: Mapped[Optional[UUID]] = mapped_column(
         ForeignKey(
             "trip.id", ondelete="CASCADE"
@@ -59,11 +63,11 @@ class Photo(Base):
         back_populates="photos", foreign_keys=[trip_id]
     )
     photo_metadata: Mapped[Optional["PhotoMetadata"]] = relationship(
-        back_populates="photo", uselist=False
+        back_populates="photo", uselist=False, passive_deletes=True
     )
 
     def __repr__(self) -> str:
-        return f"<id={self.id}, author={self.author.first_name} {self.author.last_name}, title={self.title}>"
+        return f"<PHOTO id={self.id}, author_id={self.author_id}, title={self.title}>"
 
 
 class PhotoMetadata(Base):
@@ -71,7 +75,9 @@ class PhotoMetadata(Base):
 
     __tablename__ = "photo_metadata"
 
-    photo_id: Mapped[UUID] = mapped_column(ForeignKey("photo.id"), primary_key=True)
+    photo_id: Mapped[UUID] = mapped_column(
+        ForeignKey("photo.id", ondelete="CASCADE"), primary_key=True
+    )
     camera_make: Mapped[Optional[str]]
     camera_model: Mapped[Optional[str]]
     lens: Mapped[Optional[str]]
@@ -92,7 +98,9 @@ class Trip(Base):
     __tablename__ = "trip"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    author_id: Mapped[UUID] = mapped_column(ForeignKey("user_account.id"))
+    author_id: Mapped[UUID] = mapped_column(
+        ForeignKey("user_account.id", ondelete="CASCADE")
+    )
     title: Mapped[str]
     description: Mapped[Optional[str]]
     cover_photo_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("photo.id"))
@@ -109,4 +117,4 @@ class Trip(Base):
     cover_photo: Mapped[Optional[Photo]] = relationship(foreign_keys=[cover_photo_id])
 
     def __repr__(self) -> str:
-        return f"<id={self.id}, author={self.author.first_name} {self.author.last_name}, title={self.title}>"
+        return f"<TRIP id={self.id}, author_id={self.author_id}, title={self.title}>"

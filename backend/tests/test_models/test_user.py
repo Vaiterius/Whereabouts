@@ -123,3 +123,88 @@ def test_user_trips_relationship_resolves(session):
     assert trip.author == user
     assert trip.author_id == user.id
     assert trip in user.trips
+
+
+def test_delete_user_deletes_photos(session):
+    """Deleting user should cascade delete all their photos"""
+    user = User(**get_test_user())
+
+    session.add(user)
+    session.commit()
+
+    photo = Photo(**get_test_photo(user.id))
+    photo2 = Photo(**get_test_photo(user.id))
+    photo3 = Photo(**get_test_photo(user.id))
+    user.photos.extend([photo, photo2, photo3])
+
+    session.commit()
+
+    # Save before delete.
+    photo_id = photo.id
+    photo2_id = photo2.id
+    photo3_id = photo3.id
+
+    session.delete(user)
+    session.commit()
+
+    assert session.get(Photo, photo_id) is None
+    assert session.get(Photo, photo2_id) is None
+    assert session.get(Photo, photo3_id) is None
+
+
+def test_delete_user_deletes_trips(session):
+    """Deleting user should cascade delete all their trips"""
+    user = User(**get_test_user())
+
+    session.add(user)
+    session.commit()
+
+    trip = Trip(**get_test_trip(user.id))
+    trip2 = Trip(**get_test_trip(user.id))
+    # user.trips.extend([trip, trip2])
+    session.add_all([trip, trip2])  # Same as above -- recommended.
+    session.commit()
+
+    # Save before delete.
+    trip_id = trip.id
+    trip2_id = trip2.id
+
+    session.delete(user)
+    session.commit()
+
+    assert session.get(Trip, trip_id) is None
+    assert session.get(Trip, trip2_id) is None
+
+
+def test_delete_user_deletes_trips_with_photos(session):
+    """Deleting a user should cascade delete all their trips and cascade deletes all its belonging photos as well"""
+    user = User(**get_test_user())
+
+    session.add(user)
+    session.commit()
+
+    trip = Trip(**get_test_trip(user.id))
+    user.trips.append(trip)
+
+    session.commit()
+
+    photo = Photo(**get_test_photo(user.id, trip.id))
+    photo2 = Photo(**get_test_photo(user.id, trip.id))
+    photo3 = Photo(**get_test_photo(user.id, trip.id))
+    session.add_all([photo, photo2, photo3])
+
+    session.commit()
+
+    # Below comment: found out setting foreign key already updates photos list.
+    # # I think we'll need to add the photos in both user.photos and trip.photos?
+    # user.photos.extend([photo, photo2, photo3])
+    # trip.photos.extend([photo, photo2, photo3])
+
+    # assert user.photos == trip.photos
+    # print(id(user.photos))
+    # print(id(trip.photos))
+
+    # print(user.photos)
+    # print(trip.photos)
+
+    assert user.photos == trip.photos  # Compares contents not memory addresses.
