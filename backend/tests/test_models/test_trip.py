@@ -109,14 +109,14 @@ def test_delete_trip_with_photos(session):
     photo3 = Photo(**get_test_photo(user.id, trip.id))
     photo4 = Photo(**get_test_photo(user.id))
 
+    session.add_all([photo, photo2, photo3, photo4])
+    session.commit()
+
     # Save before deleting.
     photo_id = photo.id
     photo2_id = photo2.id
     photo3_id = photo3.id
     photo4_id = photo4.id
-
-    session.add_all([photo, photo2, photo3, photo4])
-    session.commit()
 
     assert photo in trip.photos
     assert photo.trip == trip
@@ -125,12 +125,16 @@ def test_delete_trip_with_photos(session):
     session.delete(trip)
     session.commit()
 
-    from sqlalchemy import select
-
-    remaining = session.execute(select(Photo)).scalars().all()
-    print(remaining)  # what's actually in the DB?
-
     # One photo should still be left undeleted as it was unbound to any trip.
+
+    # NOTE: Changed Trip.photos passive_deletes from True to "all" thanks to
+    # the helpful Claude as assertions weren't resolving:
+
+    # SQLAlchemy tried to be helpful and clean up the photos itself before deleting the trip.
+    # But in doing so, it cut the link between the photos and the trip (by nulling trip_id) before
+    # the delete happened. So when the trip was deleted, the DB looked at the photos and said "none
+    # of these belong to this trip anymore" — and left them all alive.
+    # passive_deletes="all" just tells SQLAlchemy to stay out of it and let the DB handle the cleanup itself.
     assert session.get(Photo, photo_id) is None
     assert session.get(Photo, photo2_id) is None
     assert session.get(Photo, photo3_id) is None

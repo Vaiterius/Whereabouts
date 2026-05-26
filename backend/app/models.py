@@ -25,10 +25,10 @@ class User(Base):
     last_seen: Mapped[Optional[datetime]]
 
     photos: Mapped[list["Photo"]] = relationship(
-        back_populates="author", foreign_keys="Photo.author_id", passive_deletes=True
+        back_populates="author", foreign_keys="Photo.author_id", passive_deletes="all"
     )
     trips: Mapped[list["Trip"]] = relationship(
-        back_populates="author", passive_deletes=True
+        back_populates="author", passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -112,7 +112,7 @@ class Trip(Base):
     photos: Mapped[list[Photo]] = relationship(
         back_populates="trip",
         foreign_keys="Photo.trip_id",
-        passive_deletes=True,
+        passive_deletes="all",
     )
     cover_photo: Mapped[Optional[Photo]] = relationship(foreign_keys=[cover_photo_id])
 

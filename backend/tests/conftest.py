@@ -9,7 +9,7 @@ from app.models import Base, Photo, Trip
 
 @pytest.fixture
 def session():
-    engine = create_engine("sqlite+pysqlite:///:memory:")
+    engine = create_engine("sqlite+pysqlite:///:memory:", echo=False)
 
     # Turn on foreign keys for SQLite for dev.
     @event.listens_for(engine, "connect")

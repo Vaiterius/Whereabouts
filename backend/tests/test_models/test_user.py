@@ -191,9 +191,17 @@ def test_delete_user_deletes_trips_with_photos(session):
     photo = Photo(**get_test_photo(user.id, trip.id))
     photo2 = Photo(**get_test_photo(user.id, trip.id))
     photo3 = Photo(**get_test_photo(user.id, trip.id))
+    photo4 = Photo(**get_test_photo(user.id))  # Not in a trip, should still be deleted.
     session.add_all([photo, photo2, photo3])
 
     session.commit()
+
+    user_id = user.id
+    trip_id = trip.id
+    photo_id = photo.id
+    photo2_id = photo2.id
+    photo3_id = photo3.id
+    photo4_id = photo4.id
 
     # Below comment: found out setting foreign key already updates photos list.
     # # I think we'll need to add the photos in both user.photos and trip.photos?
@@ -208,3 +216,13 @@ def test_delete_user_deletes_trips_with_photos(session):
     # print(trip.photos)
 
     assert user.photos == trip.photos  # Compares contents not memory addresses.
+
+    session.delete(user)
+    session.commit()
+
+    assert session.get(User, user_id) is None
+    assert session.get(Trip, trip_id) is None
+    assert session.get(Photo, photo_id) is None
+    assert session.get(Photo, photo2_id) is None
+    assert session.get(Photo, photo3_id) is None
+    assert session.get(Photo, photo4_id) is None
