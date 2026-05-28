@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.models import Base
 from app.database import engine
-from app.api.v0 import trips
+from app.api.v0 import router as v0_router
 
 
 @asynccontextmanager
@@ -20,4 +20,4 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(trips.router)
+app.include_router(v0_router)
