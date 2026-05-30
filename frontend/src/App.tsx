@@ -1,11 +1,8 @@
 import "./App.css";
+import Trip from "./trip-view/Trip";
 
 function App() {
-  return (
-    <>
-      <p className="text text-2xl">Hello, world!</p>
-    </>
-  );
+  return <Trip />;
 }
 
 export default App;
